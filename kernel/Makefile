@@ -1,18 +1,24 @@
 TARGET = kernel.elf
-OBJS = main.o graphics/graphics.o
+OBJS = main.o graphics/graphics.o graphics/font.o
 
 CXXFLAGS += -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17
-LDFLAGS  += --entry CallKernelMain -z norelro --image-base 0x100000 --static -z separate-code
+LDFLAGS  += --entry Main -z norelro --image-base 0x100000 --static -z separate-code
 
 .PHONY: all
 all: $(TARGET)
 
 .PHONY: clean
 clean:
-	rm -rf *.o
+	rm -rf *.o */*.o */*.bin
 
 kernel.elf: $(OBJS) Makefile
 	ld.lld $(LDFLAGS) -o kernel.elf $(OBJS)
 
 %.o: %.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+graphics/font.bin: graphics/font.txt
+	../makefont.py $@ $<
+
+graphics/font.o: graphics/font.bin
+	objcopy -I binary -O elf64-x86-64 -B i386:x86-64 $< $@
