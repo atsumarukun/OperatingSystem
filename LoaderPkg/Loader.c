@@ -13,6 +13,7 @@ edk2を利用.
 #include <Guid/FileInfo.h>
 
 #include "elf.hpp"
+#include "framebuffer.hpp"
 #include "memorymap.hpp"
 
 EFI_STATUS OpenRootDir(EFI_HANDLE IMAGE_HANDLE, EFI_FILE_PROTOCOL** root_dir) {
@@ -111,6 +112,37 @@ EFI_STATUS ReadKernelFile(EFI_FILE_PROTOCOL* root_dir, UINT64* kernel_file_addr,
     return gBS->FreePool(kernel_file_buf);
 }
 
+EFI_STATUS OpenGOP(EFI_HANDLE IMAGE_HANDLE, EFI_GRAPHICS_OUTPUT_PROTOCOL** gop) {
+    EFI_STATUS status;
+
+    UINTN gop_handle_num = 0;
+    EFI_HANDLE* gop_handles = NULL;
+    status = gBS->LocateHandleBuffer(
+        ByProtocol,
+        &gEfiGraphicsOutputProtocolGuid,
+        NULL,
+        &gop_handle_num,
+        &gop_handles
+    );
+    if (EFI_ERROR(status)) {
+        return status;
+    }
+
+    status = gBS->OpenProtocol(
+        gop_handles[0],
+        &gEfiGraphicsOutputProtocolGuid,
+        (VOID**) gop,
+        IMAGE_HANDLE,
+        NULL,
+        EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
+    );
+    if (EFI_ERROR(status)) {
+        return status;
+    }
+
+    return gBS->FreePool(gop_handles);
+}
+
 EFI_STATUS GetMemoryMap(MemoryMap* memorymap) {
     if (!memorymap->map_buf) {
         return EFI_BUFFER_TOO_SMALL;
@@ -164,6 +196,31 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE IMAGE_HANDLE, EFI_SYSTEM_TABLE *SYSTEM_TAB
     ErrorHandling(status);
     Print(L"Read kernel file is successed. address: 0x%0lx, size: %lu bytes\n", kernel_file_addr, kernel_file_size);
 
+    EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
+    status = OpenGOP(IMAGE_HANDLE, &gop);
+    ErrorHandling(status);
+    Print(L"Open Graphics Output Protocol is successed.\n");
+
+    FrameBuffer frame_buffer = {
+        (UINT8*) gop->Mode->FrameBufferBase,
+        gop->Mode->Info->PixelsPerScanLine,
+        gop->Mode->Info->HorizontalResolution,
+        gop->Mode->Info->VerticalResolution,
+        0
+    };
+
+    switch (gop->Mode->Info->PixelFormat) {
+        case PixelRedGreenBlueReserved8BitPerColor:
+            frame_buffer.pixel_format = RGBResv8bit;
+            break;
+        case PixelBlueGreenRedReserved8BitPerColor:
+            frame_buffer.pixel_format = BGRResv8bit;
+            break;
+        default:
+            Print(L"This pixel format is not supported: %d\n", gop->Mode->Info->PixelFormat);
+            while (1) __asm__("hlt");
+    }
+
     CHAR8 memorymap_buf[4096 * 4];
     MemoryMap memorymap = {sizeof(memorymap_buf), memorymap_buf, 0, 0, 0, 0};
     status = GetMemoryMap(&memorymap);
@@ -175,9 +232,9 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE IMAGE_HANDLE, EFI_SYSTEM_TABLE *SYSTEM_TAB
     ErrorHandling(status);
 
     UINT64 entry_addr = *(UINT64*) (kernel_file_addr + 24);
-    typedef void EntryPointType();
+    typedef void EntryPointType(FrameBuffer*);
     EntryPointType* entry_point = (EntryPointType*) entry_addr;
-    entry_point();
+    entry_point(&frame_buffer);
 
     while (1) __asm__("hlt");
     return EFI_SUCCESS;

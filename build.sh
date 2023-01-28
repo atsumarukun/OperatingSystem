@@ -7,6 +7,10 @@ if [ ! -e memorymap.hpp ]; then
   echo test
 fi
 
+if [ ! -e framebuffer.hpp ]; then
+  ln -s /os/kernel/graphics/framebuffer.hpp
+fi
+
 if [ ! -e elf.hpp ]; then
   ln -s /os/kernel/file/elf.hpp
 fi

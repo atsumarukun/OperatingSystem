@@ -3,4 +3,5 @@ disk.img
 kernel/kernel.elf
 kernel/*.o
 LoaderPkg/elf.hpp
+LoaderPkg/framebuffer.hpp
 LoaderPkg/memorymap.hpp
