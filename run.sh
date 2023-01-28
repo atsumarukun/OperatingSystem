@@ -6,7 +6,11 @@ EDK2_DIR=/edk2
 MOUNT_POINT=$BASE_DIR/mnt
 
 # build boot loader
-/edk2/build.sh
+$EDK2_DIR/build.sh
+
+# compile kernel
+cd $BASE_DIR/kernel
+make all clean
 
 # sestting qemu
 cd $BASE_DIR
@@ -24,6 +28,7 @@ mount -o loop $BASE_DIR/$DISK_IMG $MOUNT_POINT
 mkdir -p $MOUNT_POINT/EFI/BOOT
 
 cp $EDK2_DIR/Build/LoaderPkgX64/DEBUG_CLANG38/X64/Loader.efi $MOUNT_POINT/EFI/BOOT/BOOTX64.EFI
+cp $BASE_DIR/kernel/kernel.elf $MOUNT_POINT
 umount $MOUNT_POINT
 
 # run qemu

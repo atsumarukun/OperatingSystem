@@ -5,7 +5,7 @@ RUN apt update && \
 ENV TZ=Asia/Tokyo
 
 RUN apt update && \
-    apt -y install git qemu-system-x86 qemu-utils build-essential clang llvm-dev nasm iasl uuid-dev python3-distutils dosfstools
+    apt -y install git qemu-system-x86 qemu-utils build-essential clang lld llvm-dev nasm iasl uuid-dev python3-distutils dosfstools
 
 RUN git clone https://github.com/tianocore/edk2.git && \
     cd /edk2  && \

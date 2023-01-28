@@ -1,0 +1,6 @@
+mnt
+disk.img
+kernel/kernel.elf
+kernel/*.o
+LoaderPkg/elf.hpp
+LoaderPkg/memorymap.hpp
