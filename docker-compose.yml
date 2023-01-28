@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  os:
+    build: ./
+    image: os
+    container_name: os
+    tty: true
+    privileged: true
+    volumes:
+      - .:/os
+      - ./LoaderPkg:/edk2/LoaderPkg
+      - ./build.sh:/edk2/build.sh
+      - ./target.txt:/edk2/Conf/target.txt
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    working_dir: /os
+    environment:
+      DISPLAY: unix$DISPLAY
+    command: sh run.sh
