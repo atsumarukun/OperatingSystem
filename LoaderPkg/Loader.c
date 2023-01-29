@@ -232,9 +232,9 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE IMAGE_HANDLE, EFI_SYSTEM_TABLE *SYSTEM_TAB
     ErrorHandling(status);
 
     UINT64 entry_addr = *(UINT64*) (kernel_file_addr + 24);
-    typedef void EntryPointType(FrameBuffer*);
+    typedef void EntryPointType(FrameBuffer*, MemoryMap*);
     EntryPointType* entry_point = (EntryPointType*) entry_addr;
-    entry_point(&frame_buffer);
+    entry_point(&frame_buffer, &memorymap);
 
     while (1) __asm__("hlt");
     return EFI_SUCCESS;
