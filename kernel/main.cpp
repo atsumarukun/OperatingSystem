@@ -2,6 +2,7 @@
 #include "graphics/graphics.hpp"
 #include "memory/memorymap.hpp"
 #include "memory/segment.hpp"
+#include "memory/paging.hpp"
 
 #include <stdio.h>
 
@@ -13,6 +14,7 @@ extern "C" void Main(const FrameBuffer& frame_buffer_tmp, const MemoryMap& memor
     FrameBufferWriter frame_buffer_writer(frame_buffer);
 
     SetSegment();
+    MakePageTable();
 
     frame_buffer_writer.DrawRectangle({0, 0}, {frame_buffer.width, frame_buffer.height}, 0xffffff);
 
