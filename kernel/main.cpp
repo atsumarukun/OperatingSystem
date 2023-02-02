@@ -4,6 +4,7 @@
 #include "memory/segment.hpp"
 #include "memory/paging.hpp"
 #include "memory/memory_manager.hpp"
+#include "devices/pci.hpp"
 
 #include <stdio.h>
 
@@ -20,17 +21,15 @@ extern "C" void Main(const FrameBuffer& framebuffer_tmp, const MemoryMap& memory
     MakePageTable();
     MemoryManager* memory_manager = new(memory_manager_buffer) MemoryManager(memorymap);
 
+    PCI pci_devices;
+
     frame_buffer_writer.DrawRectangle({0, 0}, {framebuffer.width, framebuffer.height}, 0xffffff);
 
     char s[1024];
-    sprintf(s, "%lu", memory_manager->memory_bit_map_[0]);
-    frame_buffer_writer.WriteString({10, 10}, s, 0x444444);
-    sprintf(s, "%lu", memory_manager->Allocate(1).value);
-    frame_buffer_writer.WriteString({10, 26}, s, 0x444444);
-    sprintf(s, "%lu", memory_manager->memory_bit_map_[0]);
-    frame_buffer_writer.WriteString({10, 42}, s, 0x444444);
-    memory_manager->Free(0, 1);
-    sprintf(s, "%lu", memory_manager->memory_bit_map_[0]);
-    frame_buffer_writer.WriteString({10, 58}, s, 0x444444);
+    for (int i = 0; i < pci_devices.devices.size(); i++) {
+        sprintf(s, "%04x", pci_devices.devices[i].vendor_id);
+        frame_buffer_writer.WriteString({10, 10 + i * 16}, s, 0x444444);
+    }
+
     while (1) __asm__("hlt");
 }
