@@ -5,8 +5,9 @@
 #include "memory/paging.hpp"
 #include "memory/memory_manager.hpp"
 #include "devices/pci.hpp"
+#include "devices/usb/xhc.hpp"
 
-#include <stdio.h>
+// #include <stdio.h>
 
 alignas(16) uint8_t kernel_stack[1024 * 1024];
 
@@ -22,14 +23,14 @@ extern "C" void Main(const FrameBuffer& framebuffer_tmp, const MemoryMap& memory
     MemoryManager* memory_manager = new(memory_manager_buffer) MemoryManager(memorymap);
 
     PCI pci_devices;
+    uintptr_t xhc_mmio_base_address = pci_devices.GetXhcMmioBaseAddress();
 
     frame_buffer_writer.DrawRectangle({0, 0}, {framebuffer.width, framebuffer.height}, 0xffffff);
+    HostController xhc(xhc_mmio_base_address, *memory_manager);
 
     char s[1024];
-    for (int i = 0; i < pci_devices.devices.size(); i++) {
-        sprintf(s, "%04x", pci_devices.devices[i].vendor_id);
-        frame_buffer_writer.WriteString({10, 10 + i * 16}, s, 0x444444);
-    }
+    sprintf(s, "%s", "Hello OS.");
+    frame_buffer_writer.WriteString({10, 10}, s, 0x444444);
 
     while (1) __asm__("hlt");
 }

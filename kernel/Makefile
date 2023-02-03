@@ -3,7 +3,7 @@ OBJS = main.o newlib.o libcxx.o \
 		graphics/graphics.o graphics/font.o \
 		memory/stack.o memory/segment.o memory/paging.o memory/memory_manager.o \
 		registry/registry.o \
-		devices/pci.o
+		devices/pci.o devices/usb/xhc.o devices/usb/ring.o
 
 CPPFLAGS += -I. -I/x86_64-elf/include/c++/v1 -I/x86_64-elf/include -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS
 CXXFLAGS += -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17
@@ -14,7 +14,7 @@ all: $(TARGET)
 
 .PHONY: clean
 clean:
-	rm -rf *.o */*.o */*.bin
+	rm -rf *.o */*.o */*.bin */*/*.o
 
 kernel.elf: $(OBJS) Makefile
 	ld.lld $(LDFLAGS) -o kernel.elf $(OBJS) -lc -lc++ -lc++abi -lm

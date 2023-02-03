@@ -1,3 +1,9 @@
+/*
+@file pci.cpp
+
+pci空間の読み書きファイル.
+*/
+
 #include "pci.hpp"
 
 namespace {
@@ -23,6 +29,19 @@ WithError<uint64_t> PCI::ReadBar(Device device, uint8_t index) {
     uint64_t bar_high = (uint64_t) ReadConfigAreaRow(device.bus, device.device, device.function, 0x10u + 4 * (index + 1));
 
     return {bar | bar_high << 32, MakeError(Error::Success)};
+}
+
+uintptr_t PCI::GetXhcMmioBaseAddress() {
+    Device* xhc;
+    for (int i = 0; i < devices.size(); i++) {
+        if (devices[i].class_code.base_class == 0x0cu && devices[i].class_code.sub_class == 0x03u && devices[i].class_code.interface == 0x30u){
+            xhc = &devices[i];
+            if (devices[i].vendor_id == 0x8086u) break;
+        }
+    }
+
+    const auto [xhc_mmio_base_address, error] = ReadBar(*xhc, 0);
+    return xhc_mmio_base_address & ~(uint64_t)0xfu;
 }
 
 uint32_t PCI::MakeConfigAddress(uint8_t bus, uint8_t device, uint8_t function, uint8_t off_set) {

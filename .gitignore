@@ -4,6 +4,7 @@ kernel/kernel.elf
 kernel/*.o
 kernel/*/*.o
 kernel/*/*.bin
+kernel/*/*/*.o
 LoaderPkg/elf.hpp
 LoaderPkg/framebuffer.hpp
 LoaderPkg/memorymap.hpp

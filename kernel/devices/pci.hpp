@@ -22,6 +22,7 @@ class PCI {
 
         PCI();
         WithError<uint64_t> ReadBar(Device device, uint8_t index);
+        uintptr_t GetXhcMmioBaseAddress();
 
     private:
 
