@@ -21,16 +21,19 @@ extern "C" void Main(const FrameBuffer& framebuffer_tmp, const MemoryMap& memory
     SetSegment();
     MakePageTable();
     MemoryManager* memory_manager = new(memory_manager_buffer) MemoryManager(memorymap);
+    memory_manager->Allocate(1);
 
     PCI pci_devices;
     uintptr_t xhc_mmio_base_address = pci_devices.GetXhcMmioBaseAddress();
 
     frame_buffer_writer.DrawRectangle({0, 0}, {framebuffer.width, framebuffer.height}, 0xffffff);
-    HostController xhc(xhc_mmio_base_address, *memory_manager);
+    HostController xhc(xhc_mmio_base_address, *memory_manager, frame_buffer_writer);
+    xhc.ResetPorts();
+    xhc.Test(frame_buffer_writer);
 
-    char s[1024];
-    sprintf(s, "%s", "Hello OS.");
-    frame_buffer_writer.WriteString({10, 10}, s, 0x444444);
+    // char s[1024];
+    // sprintf(s, "%s", "Hello OS.");
+    // frame_buffer_writer.WriteString({10, 10}, s, 0x444444);
 
     while (1) __asm__("hlt");
 }

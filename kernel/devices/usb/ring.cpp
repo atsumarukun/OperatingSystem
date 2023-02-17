@@ -1,4 +1,8 @@
-#include <string.h>
+/*
+@file ring.cpp
+
+xhcのリングファイル.
+*/
 
 #include "ring.hpp"
 
@@ -14,6 +18,13 @@ void Ring::Initialize(int buffer_size, MemoryManager& memory_manager) {
 
 TRB* Ring::Buffer() const {
     return buffer_;
+}
+
+void Ring::Push(uint32_t trb[4]) {
+    for (int i = 0; i < 3; i++) {
+        buffer_[write_index_].data[i] = trb[i];
+    }
+    buffer_[write_index_++].data[3] = (trb[3] & 0xfffffffeu) | (uint32_t) cycle_bit_;
 }
 
 void EventRing::Initialize(int buffer_size, InterrupterRegisterSet* interrupter, MemoryManager& memory_manager) {
@@ -39,4 +50,22 @@ void EventRing::Initialize(int buffer_size, InterrupterRegisterSet* interrupter,
     ERSTBAMap erstba = interrupter_->ERSTBA.Read();
     erstba.bits.ERSTBA = (uint64_t) erst_ >> 6;
     interrupter_->ERSTBA.Write(erstba);
+}
+
+TRB* EventRing::Front() const {
+    return ReadDequeuePointer();
+}
+
+bool EventRing::HasFront() const {
+    return Front()->bits.cycle_bit == cycle_bit_;
+}
+
+void EventRing::Pop() {
+    TRB* dequeue_pointer = ReadDequeuePointer() + 1;
+    TRB* segment_address = (TRB*) erst_[0].bits.ring_segment_base_address;
+    if (dequeue_pointer == segment_address + erst_[0].bits.ring_segment_size) {
+        dequeue_pointer = segment_address;
+        cycle_bit_ = !cycle_bit_;
+    }
+    WriteDequeuePointer(dequeue_pointer);
 }

@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "context.hpp"
+
 template <typename ToType, typename FromeType>
 ToType* TrbTypeCast(FromeType* trb) {
     if (ToType::TYPE == trb->bits.trb_type) return (ToType*) trb;
@@ -37,6 +39,32 @@ union EnableSlotCommandTRB {
         uint32_t slot_type: 5;
         uint32_t          : 11;
     } __attribute__((packed)) bits;
+    EnableSlotCommandTRB () {
+    bits.trb_type = TYPE;
+   }
+};
+
+union AddressDeviceCommandTRB {
+    static const unsigned int TYPE = 11;
+    uint32_t data[4];
+    struct {
+        uint64_t                      : 4;
+        uint64_t input_context_pointer: 60;
+
+        uint32_t Rsvd;
+
+        uint32_t                 cycle_bit: 1;
+        uint32_t                          : 8;
+        uint32_t block_set_address_request: 1;
+        uint32_t                  trb_type: 6;
+        uint32_t                          : 8;
+        uint32_t                   slot_id: 8;
+    } __attribute__((packed)) bits;
+    AddressDeviceCommandTRB(const InputContext* input_context, uint8_t slot_id) {
+        bits.trb_type = TYPE;
+        bits.slot_id = slot_id;
+        bits.input_context_pointer = (uint64_t) input_context >> 4;
+    }
 };
 
 union TramsferEventTRB {

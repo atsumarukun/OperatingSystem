@@ -86,6 +86,14 @@ union HCCPARAMS1Map {
     } __attribute__((packed)) bits;
 } __attribute__((packed));
 
+union DBOFFMap {
+    uint32_t data[1];
+    struct {
+        uint32_t    : 2;
+        uint32_t DAO: 30;
+    } __attribute__((packed)) bits;
+} __attribute__((packed));
+
 union HCCPARAMS2Map {
     uint32_t data[1];
     struct {
@@ -111,7 +119,7 @@ struct CapabilityRegisters {
     MMIO<HCSPARAMS2Map> HCSPARAMS2;
     MMIO<HCSPARAMS3Map> HCSPARAMS3;
     MMIO<HCCPARAMS1Map> HCCPARAMS1;
-    uint32_t DBOFF;
+    MMIO<DBOFFMap> DBOFF;
     uint32_t RTSOFF;
     MMIO<HCCPARAMS2Map> HCCPARAMS2;
 
@@ -291,3 +299,25 @@ struct PortRegisterSet {
     MMIO<PORTLIMap> PORTLI;
     MMIO<PORTHLPMCMap> PORTHLPMC;
 } __attribute__((packed));
+
+union DoorbellMap {
+    uint32_t data[1];
+    struct {
+        uint32_t DBTarget : 8;
+        uint32_t : 8;
+        uint32_t DBStreamID : 16;
+    } __attribute__((packed)) bits;
+} __attribute__((packed));
+
+class DoorbellRegister {
+    MMIO<DoorbellMap> doorbell_;
+
+    public:
+        void Ring(uint8_t target, uint16_t stream_id = 0) {
+            DoorbellMap doorbell;
+            doorbell.bits.DBTarget = target;
+            doorbell.bits.DBStreamID = stream_id;
+            doorbell_.Write(doorbell);
+        }
+        uint32_t Read() {return doorbell_.Read().data[0];}
+};

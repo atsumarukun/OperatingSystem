@@ -24,16 +24,21 @@ class Ring {
         void Initialize(int buffer_size, MemoryManager& memory_manager);
         TRB* Buffer() const;
 
+        void Push(uint32_t trb[4]);
+
     private:
         TRB* buffer_;
         int buffer_size_;
         bool cycle_bit_;
-        int write_index_;
+        unsigned int write_index_;
 };
 
 class EventRing {
     public:
         void Initialize(int buffer_size, InterrupterRegisterSet* interrupter, MemoryManager& memory_manager);
+        TRB* Front() const;
+        bool HasFront() const;
+        void Pop();
 
     private:
         TRB* buffer_;
@@ -41,4 +46,14 @@ class EventRing {
         bool cycle_bit_;
         EventRingSegmentTableEntry* erst_;
         InterrupterRegisterSet* interrupter_;
+
+        TRB* ReadDequeuePointer() const {
+            return (TRB*) (interrupter_->ERDP.Read().bits.ERDP << 4);
+        }
+
+        void WriteDequeuePointer(TRB* dequeue_pointer) {
+            ERDPMap erdp = interrupter_->ERDP.Read();
+            erdp.bits.ERDP = (uint64_t) dequeue_pointer >> 4;
+            interrupter_->ERDP.Write(erdp);
+        }
 };

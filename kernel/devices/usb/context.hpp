@@ -3,12 +3,12 @@
 union SlotContextMap {
     uint32_t data[8];
     struct {
-        uint32_t route_string: 20;
-        uint32_t        speed: 4;
-        uint32_t             : 1;
-        uint32_t          MTT: 1;
-        uint32_t          hub: 1;
-        uint32_t             : 5;
+        uint32_t    route_string: 20;
+        uint32_t           speed: 4;
+        uint32_t                : 1;
+        uint32_t             MTT: 1;
+        uint32_t             hub: 1;
+        uint32_t context_entries: 5;
 
         uint32_t     max_exit_latency: 16;
         uint32_t root_hub_port_number: 8;
@@ -54,7 +54,38 @@ union EndpointContextMap {
     } __attribute__((packed)) bits;
 } __attribute__((packed));
 
+struct DeviceContextIndex {
+    int value;
+    DeviceContextIndex(int ep_num, bool dir_in): value{2 * ep_num + (ep_num == 0? 1: dir_in)} {}
+};
+
 struct DeviceContext {
     SlotContextMap SlotContext;
     EndpointContextMap EndpointContext[31];
+} __attribute__((packed));
+
+struct InputControlContextMap {
+uint32_t drop_context_flags;
+uint32_t add_context_flags;
+uint32_t reserved1[5];
+uint8_t configuration_value;
+uint8_t interface_number;
+uint8_t alternate_setting;
+uint8_t reserved2;
+} __attribute__((packed));
+
+struct InputContext {
+    InputControlContextMap InputControlContext;
+    SlotContextMap SlotContext;
+    EndpointContextMap EndpointContext[31];
+
+    SlotContextMap* EnableSlotContext() {
+        InputControlContext.add_context_flags |= 1;
+        return &SlotContext;
+    }
+
+    EndpointContextMap* EnableEndpoint(DeviceContextIndex dci) {
+        InputControlContext.add_context_flags |= 1u << dci.value;
+        return &EndpointContext[dci.value - 1];
+    }
 } __attribute__((packed));
