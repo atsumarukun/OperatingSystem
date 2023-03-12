@@ -20,11 +20,12 @@ TRB* Ring::Buffer() const {
     return buffer_;
 }
 
-void Ring::Push(uint32_t trb[4]) {
+TRB* Ring::Push(uint32_t trb[4]) {
     for (int i = 0; i < 3; i++) {
         buffer_[write_index_].data[i] = trb[i];
     }
-    buffer_[write_index_++].data[3] = (trb[3] & 0xfffffffeu) | (uint32_t) cycle_bit_;
+    buffer_[write_index_].data[3] = (trb[3] & 0xfffffffeu) | (uint32_t) cycle_bit_;
+    return &buffer_[write_index_++];
 }
 
 void EventRing::Initialize(int buffer_size, InterrupterRegisterSet* interrupter, MemoryManager& memory_manager) {

@@ -14,6 +14,7 @@ class FrameBufferWriter {
     public:
         FrameBufferWriter(const FrameBuffer& frame_buffer): frame_buffer_{frame_buffer} {}
         void DrawRectangle(Coordinate coordinate, Size size, unsigned int color);
+        void DrawCircle(Coordinate coordinate, unsigned int radius, unsigned int color);
         void WriteString(Coordinate coordinate, const char* string, unsigned int color);
 
     private:

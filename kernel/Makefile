@@ -1,9 +1,9 @@
 TARGET = kernel.elf
 OBJS = main.o newlib.o libcxx.o \
-		graphics/graphics.o graphics/font.o \
+		graphics/graphics.o graphics/font.o graphics/mouse.o \
 		memory/stack.o memory/segment.o memory/paging.o memory/memory_manager.o \
 		registry/registry.o \
-		devices/pci.o devices/usb/xhc.o devices/usb/ring.o devices/usb/port.o devices/usb/device.o
+		devices/pci.o devices/usb/xhc.o devices/usb/ring.o devices/usb/port.o devices/usb/device.o devices/usb/classdriver.o devices/usb/hid.o devices/usb/mouse.o devices/usb/keyboard.o
 
 CPPFLAGS += -I. -I/x86_64-elf/include/c++/v1 -I/x86_64-elf/include -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS
 CXXFLAGS += -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17

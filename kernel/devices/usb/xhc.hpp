@@ -15,10 +15,10 @@ class HostController {
     public:
         HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager, FrameBufferWriter& frame_buffer_writer);
         void ResetPorts();
-        void ProcessEvent(FrameBufferWriter& frame_buffer_writer);
-        void Test(FrameBufferWriter& frame_buffer_writer);
+        void Test();
 
     private:
+        FrameBufferWriter& frame_buffer_writer_;
         const uintptr_t mmio_base_address_;
         CapabilityRegisters* const capability_registers_;
         OperationalRegisters* const operational_registers_;
@@ -39,8 +39,11 @@ class HostController {
         void ResetPort(Port port);
         void AllocateSlot(Port port);
         void InitializeSlotContext(SlotContextMap* context, Port* port);
-        void InitializeEP0Context(EndpointContextMap& context, Ring* ring, uint16_t max_package_size);
+        void InitializeEP0Context(EndpointContextMap* context, Ring* ring, uint16_t max_package_size);
         void AddressDevice(uint8_t port_id, uint8_t slot_id);
+        void ConfigureEndpoints(USBDevice* device);
         void OnEvent(PortStatusChangeEventTRB* trb);
-        void OnEvent(CommandCompletionEventTRB* trb, FrameBufferWriter& frame_buffer_writer);
+        void OnEvent(CommandCompletionEventTRB* trb);
+        void OnEvent(TransferEventTRB* trb);
+        void ProcessEvent();
 };

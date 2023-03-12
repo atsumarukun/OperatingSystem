@@ -1,5 +1,7 @@
 #pragma once
 
+#include "endpoint.hpp"
+
 union SlotContextMap {
     uint32_t data[8];
     struct {
@@ -56,6 +58,7 @@ union EndpointContextMap {
 
 struct DeviceContextIndex {
     int value;
+    DeviceContextIndex(EndpointID endpoint_id) : value{endpoint_id.Address()} {}
     DeviceContextIndex(int ep_num, bool dir_in): value{2 * ep_num + (ep_num == 0? 1: dir_in)} {}
 };
 
@@ -65,13 +68,13 @@ struct DeviceContext {
 } __attribute__((packed));
 
 struct InputControlContextMap {
-uint32_t drop_context_flags;
-uint32_t add_context_flags;
-uint32_t reserved1[5];
-uint8_t configuration_value;
-uint8_t interface_number;
-uint8_t alternate_setting;
-uint8_t reserved2;
+    uint32_t drop_context_flags;
+    uint32_t add_context_flags;
+    uint32_t reserved1[5];
+    uint8_t configuration_value;
+    uint8_t interface_number;
+    uint8_t alternate_setting;
+    uint8_t reserved2;
 } __attribute__((packed));
 
 struct InputContext {

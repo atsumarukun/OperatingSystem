@@ -24,7 +24,7 @@ class Ring {
         void Initialize(int buffer_size, MemoryManager& memory_manager);
         TRB* Buffer() const;
 
-        void Push(uint32_t trb[4]);
+        TRB* Push(uint32_t trb[4]);
 
     private:
         TRB* buffer_;

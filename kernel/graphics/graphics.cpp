@@ -36,6 +36,19 @@ void FrameBufferWriter::DrawRectangle(Coordinate coordinate, Size size, unsigned
     }
 }
 
+void FrameBufferWriter::DrawCircle(Coordinate coordinate, unsigned int radius, unsigned int color) {
+    for (int y = 0; y < radius; y++) {
+        for (int x = 0; x < radius; x++) {
+            if (x*x + y*y <= radius*radius) {
+                WritePixel({coordinate.x + x, coordinate.y + y}, color);
+                WritePixel({coordinate.x - x, coordinate.y + y}, color);
+                WritePixel({coordinate.x + x, coordinate.y - y}, color);
+                WritePixel({coordinate.x - x, coordinate.y - y}, color);
+            }
+        }
+    }
+}
+
 void FrameBufferWriter::WriteString(Coordinate Coordinate, const char* string, unsigned int color) {
     for (int i = 0; string[i]; i++) {
         WriteOneLetter({Coordinate.x + 8 * i, Coordinate.y}, string[i], color);
