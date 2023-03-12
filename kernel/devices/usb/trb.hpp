@@ -142,6 +142,33 @@ union StatusStageTRB {
     }
 };
 
+
+  union LinkTRB {
+    static const unsigned int TYPE = 6;
+    uint32_t data[4];
+    struct {
+      uint64_t : 4;
+      uint64_t ring_segment_pointer : 60;
+
+      uint32_t : 22;
+      uint32_t interrupter_target : 10;
+
+      uint32_t cycle_bit : 1;
+      uint32_t toggle_cycle : 1;
+      uint32_t : 2;
+      uint32_t chain_bit : 1;
+      uint32_t interrupt_on_completion : 1;
+      uint32_t : 4;
+      uint32_t trb_type : 6;
+      uint32_t : 16;
+    } __attribute__((packed)) bits;
+
+    LinkTRB(const TRB* ring_segment_pointer) {
+      bits.trb_type = TYPE;
+      bits.ring_segment_pointer = (uint64_t) ring_segment_pointer >> 4;
+    }
+  };
+
 union EnableSlotCommandTRB {
     static const unsigned int TYPE = 9;
     uint32_t data[4];

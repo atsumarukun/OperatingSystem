@@ -25,7 +25,18 @@ TRB* Ring::Push(uint32_t trb[4]) {
         buffer_[write_index_].data[i] = trb[i];
     }
     buffer_[write_index_].data[3] = (trb[3] & 0xfffffffeu) | (uint32_t) cycle_bit_;
-    return &buffer_[write_index_++];
+    TRB* trb_ptr = &buffer_[write_index_++];
+    if (write_index_ == buffer_size_) {
+        LinkTRB link{buffer_};
+        link.bits.toggle_cycle = true;
+        for (int i = 0; i < 3; i++) {
+            buffer_[write_index_].data[i] = link.data[i];
+        }
+        buffer_[write_index_].data[3] = (link.data[3] & 0xfffffffeu) | (uint32_t) cycle_bit_;
+        write_index_ = 0;
+        cycle_bit_ = !cycle_bit_;
+    }
+    return trb_ptr;
 }
 
 void EventRing::Initialize(int buffer_size, InterrupterRegisterSet* interrupter, MemoryManager& memory_manager) {
