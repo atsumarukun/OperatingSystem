@@ -6,6 +6,8 @@
 
 #include "graphics.hpp"
 
+#include <stdio.h>
+
 extern const uint8_t _binary_graphics_font_bin_start;
 extern const uint8_t _binary_graphics_font_bin_size;
 
@@ -26,6 +28,10 @@ namespace {
         return &_binary_graphics_font_bin_start + index;
     }
 
+}
+
+FrameBufferWriter::FrameBufferWriter(const FrameBuffer& frame_buffer): frame_buffer_{frame_buffer} {
+    buffer_.resize(GetPixelBytes(frame_buffer_.pixel_format) * (frame_buffer_.line * frame_buffer_.height));
 }
 
 void FrameBufferWriter::DrawRectangle(Coordinate coordinate, Size size, unsigned int color) {
@@ -55,19 +61,30 @@ void FrameBufferWriter::WriteString(Coordinate Coordinate, const char* string, u
     }
 }
 
-void FrameBufferWriter::WritePixel(Coordinate coordinate, unsigned int color) {
-    uint8_t* pixel = &frame_buffer_.base_address[GetPixelBytes(frame_buffer_.pixel_format) * (frame_buffer_.line * coordinate.y + coordinate.x)];
-    pixel[0] = color >> 16;
-    pixel[1] = (color >> 8) & 0xff;
-    pixel[2] = color & 0xff;
-}
-
-void FrameBufferWriter::WriteOneLetter(Coordinate Coordinate, char character, unsigned int color) {
+void FrameBufferWriter::WriteOneLetter(Coordinate coordinate, char character, unsigned int color) {
     const uint8_t* font = GetFont(character);
     if (!font) return;
     for (int dy = 0; dy < 16; dy++) {
         for (int dx = 0; dx < 8; dx++) {
-            if ((font[dy] << dx) & 0x80u) WritePixel({Coordinate.x + dx, Coordinate.y + dy}, color);
+            if ((font[dy] << dx) & 0x80u) WritePixel({coordinate.x + dx, coordinate.y + dy}, color);
         }
     }
+}
+
+void FrameBufferWriter::Draw() {
+    memcpy(frame_buffer_.base_address, buffer_.data(), buffer_.size());
+}
+
+void FrameBufferWriter::FrameBuffer2Buffer(Coordinate destination, Coordinate original, Size size) {
+    int pixel_byte = GetPixelBytes(frame_buffer_.pixel_format);
+    for (int y = 0; y < size.height; y++) {
+        memcpy(buffer_.data() + pixel_byte * (frame_buffer_.line * (destination.y + y) + destination.x), frame_buffer_.base_address + pixel_byte * (frame_buffer_.line * (original.y + y) + original.x), pixel_byte * size.width);
+    }
+}
+
+void FrameBufferWriter::WritePixel(Coordinate coordinate, unsigned int color) {
+    uint8_t* pixel = &buffer_[GetPixelBytes(frame_buffer_.pixel_format) * (frame_buffer_.line * coordinate.y + coordinate.x)];
+    pixel[0] = color >> 16;
+    pixel[1] = (color >> 8) & 0xff;
+    pixel[2] = color & 0xff;
 }

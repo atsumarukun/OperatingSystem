@@ -1,7 +1,7 @@
 TARGET = kernel.elf
 OBJS = main.o newlib.o libcxx.o \
-		graphics/graphics.o graphics/font.o graphics/mouse.o \
-		memory/stack.o memory/segment.o memory/paging.o memory/memory_manager.o \
+		graphics/graphics.o graphics/font.o graphics/mouse.o graphics/console.o graphics/logger.o \
+		memory/stack.o memory/segment.o memory/paging.o memory/memory_manager.o memory/heap.o \
 		registry/registry.o \
 		devices/pci.o devices/usb/xhc.o devices/usb/ring.o devices/usb/port.o devices/usb/device.o devices/usb/classdriver.o devices/usb/hid.o devices/usb/mouse.o devices/usb/keyboard.o
 
