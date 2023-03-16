@@ -12,6 +12,7 @@ xhcホストコントローラーのファイル.
 #include "trb.hpp"
 #include "descriptor.hpp"
 #include "endpoint.hpp"
+#include "graphics/logger.hpp"
 
 namespace {
     enum PortSpeed {
@@ -31,13 +32,12 @@ namespace {
     }
 }
 
-HostController::HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager, FrameBufferWriter& frame_buffer_writer):
+HostController::HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager):
                                             mmio_base_address_{mmio_base_address},
                                             capability_registers_{(CapabilityRegisters*) mmio_base_address_},
                                             operational_registers_{(OperationalRegisters*) (mmio_base_address_ + capability_registers_->CAPLENGTH)},
                                             max_ports_{(uint8_t) capability_registers_->HCSPARAMS1.Read().bits.MaxPorts},
-                                            memory_manager_{memory_manager},
-                                            frame_buffer_writer_{frame_buffer_writer} {
+                                            memory_manager_{memory_manager} {
     USBCMDMap usbcmd = operational_registers_->USBCMD.Read();
     if (!operational_registers_->USBSTS.Read().bits.HCH) {
         usbcmd.bits.RS = 0;
@@ -160,7 +160,7 @@ uint16_t DetermineMaxPacketSizeForControlPipe(uint8_t slot_speed) {
 }
 
 void HostController::AddressDevice(uint8_t port_id, uint8_t slot_id) {
-    USBDevice* device = new(&USBDevices()[slot_id]) USBDevice(slot_id, &DoorbellRegisters()[slot_id], frame_buffer_writer_);
+    USBDevice* device = new(&USBDevices()[slot_id]) USBDevice(slot_id, &DoorbellRegisters()[slot_id]);
     memset(&device->InputContext()->InputControlContext, 0, sizeof(InputControlContextMap));
 
     const DeviceContextIndex ep0_dci = DeviceContextIndex(0, false);
@@ -275,13 +275,6 @@ void HostController::OnEvent(CommandCompletionEventTRB* trb) {
             {
                 USBDevice* device = &USBDevices()[slot_id];
                 device->OnEndpointsConfigured();
-                break;
-            }
-        default:
-            {
-                char s[1024];
-                sprintf(s, "%d", 200);
-                frame_buffer_writer_.WriteString({10, 10}, s, 0x444444);
                 break;
             }
     }

@@ -13,12 +13,11 @@
 
 class HostController {
     public:
-        HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager, FrameBufferWriter& frame_buffer_writer);
+        HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager);
         void ResetPorts();
         void Test();
 
     private:
-        FrameBufferWriter& frame_buffer_writer_;
         const uintptr_t mmio_base_address_;
         CapabilityRegisters* const capability_registers_;
         OperationalRegisters* const operational_registers_;

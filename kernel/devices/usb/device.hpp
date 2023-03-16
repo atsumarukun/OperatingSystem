@@ -12,7 +12,7 @@ class ClassDriver;
 
 class USBDevice {
     public:
-        USBDevice(uint8_t slot_id, DoorbellRegister* doorbell_reg, FrameBufferWriter& frame_buffer_writer): slot_id_{slot_id}, doorbell_reg_{doorbell_reg}, frame_buffer_writer_{frame_buffer_writer} {}
+        USBDevice(uint8_t slot_id, DoorbellRegister* doorbell_reg): slot_id_{slot_id}, doorbell_reg_{doorbell_reg} {}
         DeviceContext* DeviceContext() { return &device_context_; }
         InputContext* InputContext() { return &input_context_; }
         Ring* AllocateTransferRing(DeviceContextIndex index, int buffer_size, MemoryManager& memory_manager);
@@ -27,7 +27,6 @@ class USBDevice {
         void InterruptIn(EndpointID endpoint_id, uint8_t* buffer, int len);
 
     private:
-        FrameBufferWriter& frame_buffer_writer_;
         uint8_t slot_id_;
         DoorbellRegister* doorbell_reg_;
         alignas(64) struct DeviceContext device_context_;
