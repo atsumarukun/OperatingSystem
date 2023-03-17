@@ -1,9 +1,10 @@
 # OperatingSystem
 このリポジトリは[『ゼロからのOS自作入門』](https://www.amazon.co.jp/%E3%82%BC%E3%83%AD%E3%81%8B%E3%82%89%E3%81%AEOS%E8%87%AA%E4%BD%9C%E5%85%A5%E9%96%80-%E5%86%85%E7%94%B0-%E5%85%AC%E5%A4%AA/dp/4839975868)を参考にオペレーティング・システムを開発しているものです。本コードは上記技術書を参考にしたもので、写経したものではありません。本環境にはDockerを利用しており、基本的なLinux, Dockerの知識が必要になります。<br />
 <br />
-本OSのビルド手順は簡単なもので、dockerコンテナを立ち上げるだけです。<br />
+本OSのビルド手順は簡単なもので、Xサーバ起動後dockerコンテナを立ち上げるだけです。<br />
 
 ```bash
+xhost local:
 docker-compose up
 ```
 
