@@ -42,15 +42,19 @@ extern "C" void Main(const FrameBuffer& frame_buffer_tmp, const MemoryMap& memor
 
     Console console({frame_buffer.width, frame_buffer.height}, {8, 16}, frame_buffer_writer);
     logger = new(logger_buffer) Logger(console);
+    logger->Debug("Hello Operating System!");
 
     PCI pci_devices;
     uintptr_t xhc_mmio_base_address = pci_devices.GetXhcMmioBaseAddress();
 
-    HostController xhc(xhc_mmio_base_address, *memory_manager, frame_buffer_writer);
     mouse = new(mouse_buffer) Mouse(frame_buffer_writer);
     MouseDriver::default_observer = MouseObserver;
+
+    HostController xhc(xhc_mmio_base_address, *memory_manager);
     xhc.ResetPorts();
-    xhc.Test();
+    while (1) {
+        xhc.ProcessEvent();
+    }
 
     while (1) __asm__("hlt");
 }

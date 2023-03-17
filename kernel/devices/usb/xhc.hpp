@@ -15,7 +15,7 @@ class HostController {
     public:
         HostController(uintptr_t mmio_base_address, MemoryManager& memory_manager);
         void ResetPorts();
-        void Test();
+        void ProcessEvent();
 
     private:
         const uintptr_t mmio_base_address_;
@@ -44,5 +44,4 @@ class HostController {
         void OnEvent(PortStatusChangeEventTRB* trb);
         void OnEvent(CommandCompletionEventTRB* trb);
         void OnEvent(TransferEventTRB* trb);
-        void ProcessEvent();
 };

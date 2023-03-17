@@ -92,6 +92,19 @@ void HostController::ResetPorts() {
     }
 }
 
+void HostController::ProcessEvent() {
+    if (!er_.HasFront()) return;
+    TRB* trb = er_.Front();
+    if (PortStatusChangeEventTRB* event_trb = TrbTypeCast<PortStatusChangeEventTRB>(trb)) {
+        OnEvent(event_trb);
+    } else if (CommandCompletionEventTRB* event_trb = TrbTypeCast<CommandCompletionEventTRB>(trb)) {
+        OnEvent(event_trb);
+    } else if (TransferEventTRB* event_trb = TrbTypeCast<TransferEventTRB>(trb)) {
+        OnEvent(event_trb);
+    }
+    er_.Pop();
+}
+
 Array<USBDevice> HostController::USBDevices() const {
     return Array<USBDevice>((uintptr_t) device_pointers_, max_slots_ + 1);
 }
@@ -287,24 +300,5 @@ void HostController::OnEvent(TransferEventTRB* trb) {
     device->OnTransferEventReceived(trb);
     if (device->IsInitialized()) {
         ConfigureEndpoints(device);
-    }
-}
-
-void HostController::ProcessEvent() {
-    if (!er_.HasFront()) return;
-    TRB* trb = er_.Front();
-    if (PortStatusChangeEventTRB* event_trb = TrbTypeCast<PortStatusChangeEventTRB>(trb)) {
-        OnEvent(event_trb);
-    } else if (CommandCompletionEventTRB* event_trb = TrbTypeCast<CommandCompletionEventTRB>(trb)) {
-        OnEvent(event_trb);
-    } else if (TransferEventTRB* event_trb = TrbTypeCast<TransferEventTRB>(trb)) {
-        OnEvent(event_trb);
-    }
-    er_.Pop();
-}
-
-void HostController::Test() {
-    while (1) {
-        ProcessEvent();
     }
 }
