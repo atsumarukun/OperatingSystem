@@ -4,8 +4,8 @@
 本OSのビルド手順は簡単なもので、Xサーバ起動後dockerコンテナを立ち上げるだけです。<br />
 
 ```bash
-xhost local:
-docker-compose up
+$ xhost local:
+$ docker-compose up
 ```
 
 上記コマンドを実行するだけで環境が立ち上がり、ブートローダ, カーネルのコンパイル及び[QEMU](https://www.qemu.org/)によるブートが行われます。<br />
