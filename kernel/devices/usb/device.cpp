@@ -3,6 +3,9 @@
 #include "classdriver.hpp"
 #include "mouse.hpp"
 #include "keyboard.hpp"
+#include "graphics/logger.hpp"
+
+extern Logger* logger;
 
 namespace {
     class ConfigurationDescriptorReader {
@@ -67,6 +70,7 @@ namespace {
 Ring* USBDevice::AllocateTransferRing(DeviceContextIndex index, int buffer_size, MemoryManager& memory_manager) {
     int i = index.value - 1;
     Ring* tr = (Ring*) memory_manager.Allocate(1).value;
+    logger->Debug("device:%p: Allocating transfer ring(%p).\n", this, tr);
     transfer_rings_[i] = tr;
     tr->Initialize(buffer_size, memory_manager);
     return tr;
@@ -215,6 +219,7 @@ void USBDevice::SetConfiguration(EndpointID endpoint_id, uint8_t configuration_v
 }
 
 void USBDevice::Initialize(uint8_t* buffer) {
+    logger->Debug("device:%p: Initializing phase 1.\n", this);
     DeviceDescriptor* device_descriptor = DescriptorTypeCast<DeviceDescriptor>(buffer);
     num_configurations_ = device_descriptor->num_configurations;
     config_index_ = 0;
@@ -223,6 +228,7 @@ void USBDevice::Initialize(uint8_t* buffer) {
 }
 
 void USBDevice::Initialize(uint8_t* buffer, int len) {
+    logger->Debug("device:%p: Initializing phase 2.\n", this);
     ConfigurationDescriptor* configuration_descriptor = DescriptorTypeCast<ConfigurationDescriptor>(buffer);
     ConfigurationDescriptorReader configuration_reader = ConfigurationDescriptorReader{buffer, len};
 
@@ -249,6 +255,7 @@ void USBDevice::Initialize(uint8_t* buffer, int len) {
 }
 
 void USBDevice::Initialize(uint8_t config_value) {
+    logger->Debug("device:%p: Initializing phase 3.\n", this);
     for (int i = 0; i < num_ep_configs_; i++) {
         classdrivers_[ep_configs_[i].ep_id.Number()]->SetEndpoint(ep_configs_[i]);
     }

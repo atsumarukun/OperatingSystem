@@ -42,7 +42,6 @@ extern "C" void Main(const FrameBuffer& frame_buffer_tmp, const MemoryMap& memor
 
     Console console({frame_buffer.width, frame_buffer.height}, {8, 16}, frame_buffer_writer);
     logger = new(logger_buffer) Logger(console);
-    logger->Debug("Hello Operating System!");
 
     PCI pci_devices;
     uintptr_t xhc_mmio_base_address = pci_devices.GetXhcMmioBaseAddress();
@@ -53,7 +52,10 @@ extern "C" void Main(const FrameBuffer& frame_buffer_tmp, const MemoryMap& memor
     HostController xhc(xhc_mmio_base_address, *memory_manager);
     xhc.ResetPorts();
     while (1) {
-        xhc.ProcessEvent();
+        if (Error error = xhc.ProcessEvent()) {
+            logger->Error(error);
+            while (1) __asm__("hlt");
+        }
     }
 
     while (1) __asm__("hlt");

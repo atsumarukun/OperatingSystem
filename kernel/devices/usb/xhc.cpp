@@ -14,13 +14,15 @@ xhcホストコントローラーのファイル.
 #include "endpoint.hpp"
 #include "graphics/logger.hpp"
 
+extern Logger* logger;
+
 namespace {
     enum PortSpeed {
-        kFullSpeed,
-        kLowSpeed,
-        kHighSpeed,
-        kSuperSpeed,
-        kSuperSpeedPlus,
+        FullSpeed,
+        LowSpeed,
+        HighSpeed,
+        SuperSpeed,
+        SuperSpeedPlus,
     };
 
     int MostSignificantBit(uint32_t value) {
@@ -55,8 +57,12 @@ HostController::HostController(uintptr_t mmio_base_address, MemoryManager& memor
     CONFIGMap config = operational_registers_->CONFIG.Read();
     config.bits.MaxSlotsEn = max_slots_;
     operational_registers_->CONFIG.Write(config);
-    device_pointers_ = (USBDevice*) memory_manager_.Allocate((sizeof(USBDevice) * (max_slots_ + 1) + 4095) / 4096).value;
+    device_pointers_ = (USBDevice**) memory_manager_.Allocate((sizeof(USBDevice*) * (max_slots_ + 1) + 4095) / 4096).value;
     device_context_pointers_ = (DeviceContext**) memory_manager_.Allocate((sizeof(DeviceContext*) * (max_slots_ + 1) + 4095) / 4096).value;
+    for (int i = 0; i < max_slots_ + 1; i++) {
+        device_pointers_[i] = nullptr;
+        device_context_pointers_[i] = nullptr;
+    }
 
     DCBAAPMap dcbaap{};
     dcbaap.bits.DCBAAP = (uint64_t) device_context_pointers_ >> 6;
@@ -92,17 +98,19 @@ void HostController::ResetPorts() {
     }
 }
 
-void HostController::ProcessEvent() {
-    if (!er_.HasFront()) return;
+Error HostController::ProcessEvent() {
+    if (!er_.HasFront()) return MakeError(Error::Success);
+    Error error = MakeError(Error::Success);
     TRB* trb = er_.Front();
     if (PortStatusChangeEventTRB* event_trb = TrbTypeCast<PortStatusChangeEventTRB>(trb)) {
-        OnEvent(event_trb);
+        error = OnEvent(event_trb);
     } else if (CommandCompletionEventTRB* event_trb = TrbTypeCast<CommandCompletionEventTRB>(trb)) {
-        OnEvent(event_trb);
+        error = OnEvent(event_trb);
     } else if (TransferEventTRB* event_trb = TrbTypeCast<TransferEventTRB>(trb)) {
-        OnEvent(event_trb);
+        error = OnEvent(event_trb);
     }
     er_.Pop();
+    return error;
 }
 
 Array<USBDevice> HostController::USBDevices() const {
@@ -122,24 +130,29 @@ Array<DoorbellRegister> HostController::DoorbellRegisters() const {
     return Array<DoorbellRegister>(mmio_base_address_ + (capability_registers_->DBOFF.Read().bits.DAO << 2), 256);
 }
 
-void HostController::ResetPort(Port port) {
-    if (!port.IsConnected()) return;
+Error HostController::ResetPort(Port port) {
+    if (!port.IsConnected()) return MakeError(Error::Success);
 
     if (!setting_port_) {
+        logger->Debug("port:%d: Resetting.\n", port.ID());
         setting_port_ = port.ID();
         port.Reset();
     } else {
         waiting_set_ports.push_back(port.ID());
     }
+    return MakeError(Error::Success);
 }
 
-void HostController::AllocateSlot(Port port) {
+Error HostController::AllocateSlot(Port port) {
     if (port.IsPortResetChanged() && port.IsEnabled()) {
+        logger->Debug("port:%d: Allocating slot.\n", port.ID());
         port.ClearPortResetChange();
         EnableSlotCommandTRB cmd{};
         cr_.Push(cmd.data);
         DoorbellRegisters()[0].Ring(0);
+        return MakeError(Error::Success);
     }
+    return MakeError(Error::InvalidPortID);
 }
 
 void HostController::InitializeSlotContext(SlotContextMap* context, Port* port) {
@@ -163,9 +176,9 @@ void HostController::InitializeEP0Context(EndpointContextMap* context, Ring* rin
 
 uint16_t DetermineMaxPacketSizeForControlPipe(uint8_t slot_speed) {
     switch (slot_speed) {
-        case 4:
+        case PortSpeed::SuperSpeed:
             return 512;
-        case 3:
+        case PortSpeed::HighSpeed:
             return 64;
         default:
             return 8;
@@ -173,7 +186,9 @@ uint16_t DetermineMaxPacketSizeForControlPipe(uint8_t slot_speed) {
 }
 
 void HostController::AddressDevice(uint8_t port_id, uint8_t slot_id) {
-    USBDevice* device = new(&USBDevices()[slot_id]) USBDevice(slot_id, &DoorbellRegisters()[slot_id]);
+    device_pointers_[slot_id] = (USBDevice*) memory_manager_.Allocate(1).value;
+    USBDevice* device = new(device_pointers_[slot_id]) USBDevice(slot_id, &DoorbellRegisters()[slot_id]);
+    logger->Debug("device:%p: Addressing device.\n", device);
     memset(&device->InputContext()->InputControlContext, 0, sizeof(InputControlContextMap));
 
     const DeviceContextIndex ep0_dci = DeviceContextIndex(0, false);
@@ -181,6 +196,7 @@ void HostController::AddressDevice(uint8_t port_id, uint8_t slot_id) {
     EndpointContextMap* ep0_context = device->InputContext()->EnableEndpoint(ep0_dci);
 
     Port port(port_id, PortRegisterSets()[port_id]);
+    logger->Debug("port:%d: Speed is %d.\n", port_id, port.Speed());
     InitializeSlotContext(slot_context, &port);
 
     InitializeEP0Context(ep0_context, device->AllocateTransferRing(ep0_dci, 32, memory_manager_), DetermineMaxPacketSizeForControlPipe(slot_context->bits.speed));
@@ -193,6 +209,7 @@ void HostController::AddressDevice(uint8_t port_id, uint8_t slot_id) {
 }
 
 void HostController::ConfigureEndpoints(USBDevice* device) {
+    logger->Debug("device:%p: Configuring endpoints.\n", device);
     const EndpointConfig* endpoint_configs = device->EndpointConfigs();
     const int num_endpoint_configs = device->NumEndpointConfigs();
 
@@ -203,9 +220,9 @@ void HostController::ConfigureEndpoints(USBDevice* device) {
     slot_context->bits.context_entries = 31;
     uint8_t port_id = device->DeviceContext()->SlotContext.bits.root_hub_port_number - 1;
     uint8_t port_speed = Port(port_id, PortRegisterSets()[port_id]).Speed();
-    if (port_speed == 0 || PortSpeed::kSuperSpeedPlus < port_speed) return;
+    if (port_speed == 0 || PortSpeed::SuperSpeedPlus < port_speed) return;
 
-    auto convert_interval = (port_speed == PortSpeed::kFullSpeed || port_speed == PortSpeed::kLowSpeed)?
+    auto convert_interval = (port_speed == PortSpeed::FullSpeed || port_speed == PortSpeed::LowSpeed)?
         [](EndpointType endpoint_type, int interval) {
             if (endpoint_type == EndpointType::kIsochronous) return interval + 2;
             return MostSignificantBit(interval) + 3;
@@ -249,17 +266,17 @@ void HostController::ConfigureEndpoints(USBDevice* device) {
     DoorbellRegisters()[0].Ring(0);
 }
 
-void HostController::OnEvent(PortStatusChangeEventTRB* trb) {
+Error HostController::OnEvent(PortStatusChangeEventTRB* trb) {
     uint8_t port_id = (uint8_t) trb->bits.port_id - 1;
     Port port(port_id, PortRegisterSets()[port_id]);
     if (port_id == setting_port_) {
-        AllocateSlot(port);
+        return AllocateSlot(port);
     } else {
-        ResetPort(port);
+        return ResetPort(port);
     }
 }
 
-void HostController::OnEvent(CommandCompletionEventTRB* trb) {
+Error HostController::OnEvent(CommandCompletionEventTRB* trb) {
     uint8_t slot_id = (uint8_t)  trb->bits.slot_id;
     TRB* command_trb_pointer = (TRB*) ((uint64_t) trb->bits.command_trb_pointer << 4);
     uint8_t trb_type = (uint8_t) command_trb_pointer->bits.trb_type;
@@ -271,9 +288,10 @@ void HostController::OnEvent(CommandCompletionEventTRB* trb) {
             }
         case AddressDeviceCommandTRB::TYPE:
             {
-                USBDevice* device = &USBDevices()[slot_id];
+                USBDevice* device = device_pointers_[slot_id];
+                if (!device) return MakeError(Error::InvalidSlotID);
                 uint8_t port_id = (uint8_t) device->DeviceContext()->SlotContext.bits.root_hub_port_number - 1;
-                if (port_id != setting_port_) return;
+                if (port_id != setting_port_) device->GetDescriptor(kDefaultControlPipeID, DeviceDescriptor::TYPE, 0);
                 setting_port_ = 0;
                 if (waiting_set_ports.size()) {
                     uint8_t port_id = waiting_set_ports.back();
@@ -286,19 +304,22 @@ void HostController::OnEvent(CommandCompletionEventTRB* trb) {
             }
         case ConfigureEndpointCommandTRB::TYPE:
             {
-                USBDevice* device = &USBDevices()[slot_id];
+                USBDevice* device = device_pointers_[slot_id];
                 device->OnEndpointsConfigured();
                 break;
             }
     }
+    return MakeError(Error::Success);
 }
 
-void HostController::OnEvent(TransferEventTRB* trb) {
+Error HostController::OnEvent(TransferEventTRB* trb) {
     uint8_t slot_id = (uint8_t) trb->bits.slot_id;
-    USBDevice* device = &USBDevices()[slot_id];
+    USBDevice* device = device_pointers_[slot_id];
 
     device->OnTransferEventReceived(trb);
     if (device->IsInitialized()) {
+        logger->Debug("slot:%d: Device initialization complete.\n", slot_id);
         ConfigureEndpoints(device);
     }
+    return MakeError(Error::Success);
 }

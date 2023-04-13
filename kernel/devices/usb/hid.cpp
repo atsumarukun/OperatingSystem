@@ -1,4 +1,7 @@
 #include "hid.hpp"
+#include "graphics/logger.hpp"
+
+extern Logger* logger;
 
 HIDDriver::HIDDriver(USBDevice* device, int index, int size): ClassDriver{device}, index_{index}, size_{size} {}
 
@@ -11,6 +14,7 @@ void HIDDriver::SetEndpoint(EndpointConfig& endpoint_config) {
 }
 
 void HIDDriver::OnEndpointsConfigured() {
+    logger->Debug("classdriver:%p Configured endpoints.\n", this);
     SetupData setupdata{};
     setupdata.request_type.bits.direction = request_type::kOut;
     setupdata.request_type.bits.type = request_type::kClass;
@@ -26,6 +30,7 @@ void HIDDriver::OnEndpointsConfigured() {
 
 void HIDDriver::OnControlCompleted() {
     if (initialize_phase_ == 1) {
+        logger->Debug("classdriver:%p Completed control.\n", this);
         initialize_phase_ = 2;
         Device()->InterruptIn(endpoint_interrupt_in_, buffer_, size_);
     }

@@ -13,8 +13,13 @@ class Error {
             Success,
             MemoryFrameShortage,
             PciBarIndexOutOfRange,
+            NotImplemented,
+            InvalidEvent,
+            FailureAllocateSlot,
+            InvalidPortID,
+            InvalidSlotID,
         };
-        Error(ErrorCode error_code, const char* file, int line): error_code_{error_code} {sprintf(error_message_, "%s:%d: %s", file, line, error_names_[error_code]);}
+        Error(ErrorCode error_code, const char* file, int line): error_code_{error_code} {sprintf(error_message_, "%s:%d: %s\n", file, line, error_names_[error_code]);}
         char* Message() {return &error_message_[0];}
         operator bool() const {
             return this->error_code_ != Success;
@@ -27,6 +32,11 @@ class Error {
             "Success",
             "MemoryFrameShortage",
             "PciBarIndexOutOfRange",
+            "NotImplemented",
+            "InvalidEvent",
+            "FailureAllocateSlot",
+            "InvalidPortID",
+            "InvalidSlotID",
         };
 };
 
